@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>记账</title>
+<script>
+var Num2Text = {1: "一", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八", 9: "九"};
+var lastRevenue = `新年好，下六肯麦基
+1月920日（星期五）
+一、收入明细
+营业额:3801.88（元含中餐0元）
+现金收入:420.3元
+支付宝扫码小程序：0元、
+新美大:元
+微信支付:2823.6元
+支付宝:166元
+小微会员支付0元
+微信扫码支付:50.9元
+抖音出单:244.58元
+闪速外卖:96.5元
+饿了么：0元
+跑腿快车：元
+支付宝小程序：0元
+云闪付：0
+二、营运情况
+TC:90单
+AC：42.24元
+工时：时
+工资：元，月工资累计元
+套餐:16份
+退单：0单0元
+优惠券：元
+本月营业额累计:45059.3元
+本月营业额目标:92000元
+本月营业额达标率：48.97%
+三、食神卡
+今日季卡:0张，本月累计:2张，累计：59.8元
+今日年卡:5张，本月累计:57张，累计:57张
+本月食神卡累计:5754.1元
+本月食神卡目标:10000元
+本月食神卡达成率:57.54%
+祝：生意兴隆!`
+
+var lastAccount = `1月19日账本余额49992.06元
+1月20日（星期五）
+一、收入明细
+营业额:3801.88元（含中餐0元）
+现金收入:420.3元
+支付宝扫码:元
+新美大:0元
+微信支付:2823.6元
+支付宝:166元
+小微会员支付：0元
+微信扫码支付:2823.6元
+抖音出单:244.58元
+闪速外卖:96.5元
+饿了么：0元
+跑腿快车：0元
+支付宝小程序：0元
+云闪付：0元
+二、开支明细
+现在开支
+现金:员工7人餐费38.5元
+合计:38.5元
+卡支:
+合计:
+其它收入：元。
+合计
+三、账目明细
+实际存行:420.3元（多收元）
+未存行:元
+备用金额:3258元
+12月未结微信支付:元
+1月未结微信支付:28876.1元，合计:28876.1元
+12月未结支付宝:0元
+1月未结支付宝:2864.1元，合计:2864.1元
+11月未结支付宝小程序:元
+12月未结支付宝小程序:元
+12月末结小微会员支付：0元
+1月末结小微会员支付：17.9元，合计：17.9元
+11月未结云闪付：0元
+12月未结云闪付:0元，合计：0元
+12月未结微信扫码支付：0元
+1月未结微信扫码支付:946.5元，合计:946.5元
+12月未结闪速外卖：元
+1月未结闪速外卖:3541.95元，合计:3541.95元
+11月末结饿了么:元
+12月未结饿了么：元，合计：元
+12月未结抖音收入：0元
+1月未结抖音收入:1658.35元，合计:1658.35元
+12月未结跑腿快车:0元
+1月末结跑腿快车：元，合计：元
+银行余额:5974.54元
+帐本余额:47155.44元（不包含1月食神卡5754.1元，合计:5754.1元）
+截止12月底欠货款合计:40358.5元(含12月份管理费元）
+1月进货 元
+占1月累计营业（45059.35元）占比1月份进货42692率为105.54%
+祝:生意兴隆！`
+
+function parseReport(result, report) {
+    var reportLines = report.replace("：", ":").split("\n");
+    var kv = null;
+    var titleReg = /[一二三四五六七八九十]、.+/;
+    var kvReg = /([^:]+): ?([\d\.]+)/;
+    var headReg = /^([^:]+): ?([\d\.]+)/;
+    var tailReg = /(本月累计|累计|合计): ?([\d\.]+)/g;
+    var repeat = 0;
+    for (var i in reportLines) {
+        var text = reportLines[i];
+        if (titleReg.test(text)) {
+            //if (text in result) {
+            //    text += repeat;
+            //    repeat += 1;
+            //}
+            repeat = 0;
+            result[text] = {};
+            kv = result[text];
+        } else if (kv != null){
+            console.log(headReg.exec(text))
+            if (headReg.test(text)) {
+                var k = RegExp.$1;
+                if (k in kv) {
+                    k += repeat;
+                    repeat += 1;
+                }
+                kv[k] = parseFloatNoNaN(RegExp.$2);
+                var arr = text.match(tailReg);
+                for (var j in arr) {
+                    console.log(arr[j])
+                    if (kvReg.test(arr[j])) {
+                        kv[k + "." + RegExp.$1] = parseFloatNoNaN(RegExp.$2);
+                    }
+                }
+            }
+        }
+    }
+    console.log(result);
+    return result;
+    //return lastReportReg.test(report);
+}
+function addResult(result, title, name, value) {
+    if (!(title in result)) {
+        result[title] = {};
+    }
+    if (name in result[title]) {
+        result[title][name] += value;
+    } else {
+        result[title][name] = value;
+    }
+}
+
+function parseFloatNoNaN(value){
+    var val = parseFloat(value);
+    if (isNaN(val)) {
+        return 0;
+    } else {
+        return val;
+    }
+}
+function getValue(key) {
+    return parseFloatNoNaN(document.getElementById(key).value);
+}
+
+function roundResult(result) {
+    for (var k in result) {
+        for (var i in result[k]) {
+            result[k][i] = Math.round(result[k][i] * 100) / 100;
+        }
+    }
+}
+
+function sumRevenue(result) {
+    var date = new Date();
+    var month = date.getMonth() + 1;
+    var add_xx = 0, del_xx = 0, shishen_xx;
+    var add_el = document.getElementById("add_xx");
+    var add_els = add_el.getElementsByTagName("input");
+    for (var i in add_els) {
+        add_xx += add_els[i].value;
+    }
+    var del_xianjing = getValue("employee_num") * getValue("del_meal_charge");
+
+    result["一、收入明细"]["营业额"] = getValue("add_yinyee");
+    result["一、收入明细"]["现金收入"] = getValue("add_xianjin");
+    result["一、收入明细"]["支付宝扫码"] = getValue("add_zhifubaoshaoma");
+    result["一、收入明细"]["新美大"] = getValue("add_xinmeida");
+    result["一、收入明细"]["微信支付"] = getValue("add_weixin");
+    result["一、收入明细"]["支付宝"] = getValue("add_zhifubao");
+    result["一、收入明细"]["小微会员支付"] = getValue("add_xiaowei");
+    result["一、收入明细"]["微信扫码支付"] = getValue("add_weixinshaoma");
+    result["一、收入明细"]["抖音出单"] = getValue("add_douyin");
+    result["一、收入明细"]["闪速外卖"] = getValue("add_shansu");
+    result["一、收入明细"]["饿了么"] = getValue("add_eleme");
+    result["一、收入明细"]["跑腿快车"] = getValue("add_paotui");
+    result["一、收入明细"]["支付宝小程序"] = getValue("add_zhifubaoxiaochenxu");
+    result["一、收入明细"]["云闪付"] = getValue("add_yunshanfu");
+    
+    result["三、食神卡"]["今日季卡"] = getValue("shishen_jika");
+    result["三、食神卡"]["今日年卡"] = getValue("shishen_nianka");
+
+    result["二、开支明细"]["现金.员工"] = getValue("employee_num");
+    result["二、开支明细"]["现金.餐费"] = getValue("del_meal_charge");
+    result["二、开支明细"]["现金.合计"] = result["二、开支明细"]["现金.餐费"];
+    result["二、开支明细"]["卡支"] = getValue("del_kazhi");
+    result["二、开支明细"]["卡支.合计"] = getValue("del_kazhi");
+    result["二、开支明细"]["其它"] = getValue("del_qita");
+    result["二、开支明细"]["其它.合计"] = getValue("del_qita");
+    
+
+    result["一、收入明细"]["营业额"] = getValue("add_yinyee");
+    result["二、营运情况"]["本月营业额累计"] += getValue("add_yinyee");
+    result["二、营运情况"]["本月营业额达标率"] = result["二、营运情况"]["本月营业额累计"] / result["二、营运情况"]["本月营业额目标"] * 100;
+    result["三、食神卡"]["今日季卡.本月累计"] += result["三、食神卡"]["今日季卡"];
+    result["三、食神卡"]["今日季卡.累计"] += result["三、食神卡"]["今日季卡"] * 29.9;
+    result["三、食神卡"]["今日年卡.本月累计"] += result["三、食神卡"]["今日年卡"];
+    result["三、食神卡"]["今日年卡.累计"] += result["三、食神卡"]["今日年卡"] * 99.9;
+    result["三、食神卡"]["本月食神卡累计"] += result["三、食神卡"]["今日年卡"] * 99.9;
+    result["三、食神卡"]["本月食神卡达成率"] = result["三、食神卡"]["本月食神卡达成率"] / result["三、食神卡"]["本月食神卡目标"] * 100;
+    result["三、账目明细"]["实际存行"] = result["一、收入明细"]["现金收入"];
+    result["三、账目明细"]["备用金额"] -= del_xianjing + result["二、开支明细"]["其它"];
+
+    addResult(result, "三、账目明细", month + "月未结微信支付", result["一、收入明细"]["微信支付"]);
+    addResult(result, "三、账目明细", month + "月未结支付宝", result["一、收入明细"]["支付宝"]);
+    addResult(result, "三、账目明细", month + "月未结支付宝小程序", result["一、收入明细"]["支付宝小程序"]);
+    addResult(result, "三、账目明细", month + "月未结支付宝扫码小程序", result["一、收入明细"]["支付宝扫码"]);
+    addResult(result, "三、账目明细", month + "月末结小微会员支付", result["一、收入明细"]["小微会员支付"]);
+    addResult(result, "三、账目明细", month + "月未结云闪付", result["一、收入明细"]["云闪付"]);
+    addResult(result, "三、账目明细", month + "月未结微信扫码支付", result["一、收入明细"]["微信扫码支付"]);
+    addResult(result, "三、账目明细", month + "月未结闪速外卖", result["一、收入明细"]["闪速外卖"]);
+    addResult(result, "三、账目明细", month + "月末结饿了么", result["一、收入明细"]["饿了么"]);
+    addResult(result, "三、账目明细", month + "月未结抖音收入", result["一、收入明细"]["抖音出单"]);
+    addResult(result, "三、账目明细", month + "月末结跑腿快车", result["一、收入明细"]["跑腿快车"]);
+    addResult(result, "三、账目明细", month + "月末结新美大", result["一、收入明细"]["新美大"]);
+
+    result["三、账目明细"]["银行余额"] += result["一、收入明细"]["现金收入"] - getValue("del_kazhi");
+    result["三、账目明细"]["昨日帐本余额"] = result["三、账目明细"]["帐本余额"];
+    result["三、账目明细"]["帐本余额"] += result["一、收入明细"]["现金收入"] - (del_xianjing + result["二、开支明细"]["其它"]);
+}
+
+function printKV(data, name, tail) {
+    if (data == null) {
+        return (name ? name : "") + (tail ? tail : "") + "\n";
+    } else {
+        if (tail == null) {
+            tail = "元";
+        }
+        if (name in data) {
+            return name + ": " + data[name] + tail + "\n";
+        } else if (name != null){
+            return name + ": " + tail + "\n";
+        } else {
+            return tail + "\n";
+        }
+    }
+}
+
+function printWeijie(data, name) {
+    var html = "";
+    var date = new Date();
+    var month = date.getMonth();
+    for (var i = 0; i < 12; i++) {
+        var n = (date.getMonth() + 1) + "月" + name;
+        if (i == 0 || n in data) {
+            html = printKV(data, n) + html;
+        } else {
+            break;
+        }
+        month -= 1;
+        date.setMonth(month);
+    }
+    return html;
+}
+
+function printRevenue(result) {
+    var date = new Date();
+    var html = "";
+    html += printKV(null, "新年好，下六肯麦基");
+    html += printKV(null, date.getMonth() + "月" + date.getDate() + "日（星期" + Num2Text[date.getDay() + 1] + "）");
+
+    data = result["一、收入明细"];
+    html += printKV(null, "一、收入明细");
+    html += printKV(data, "营业额", "（元含中餐0元）");
+    html += printKV(data, "现金收入");
+    html += printKV(data, "支付宝扫码");
+    html += printKV(data, "新美大");
+    html += printKV(data, "微信支付");
+    html += printKV(data, "支付宝");
+    html += printKV(data, "小微会员支付");
+    html += printKV(data, "微信扫码支付");
+    html += printKV(data, "抖音出单");
+    html += printKV(data, "闪速外卖");
+    html += printKV(data, "饿了么");
+    html += printKV(data, "跑腿快车");
+    html += printKV(data, "支付宝小程序");
+    html += printKV(data, "云闪付");
+
+    data = result["一、收入明细"];
+    html += printKV(null, "二、营运情况");
+    html += printKV(null, "TC: 单");
+    html += printKV(null, "AC: 元");
+    html += printKV(null, "工时: 时");
+    html += printKV(null, "工资: 元，月工资累计元");
+    html += printKV(null, "套餐: 份");
+    html += printKV(null, "退单: 0单0元");
+    html += printKV(null, "优惠券：元");
+    html += printKV(data, "本月营业额累计");
+    html += printKV(data, "本月营业额目标");
+    html += printKV(data, "本月营业额达标率", "%");
+
+    data = result["三、食神卡"];
+    html += printKV(data, "三、食神卡");
+    html += printKV(data, "今日季卡", "张，本月累计" + data["今日季卡.本月累计"] + "张，累计：" + data["今日季卡.累计"] + "元");
+    html += printKV(data, "今日年卡", "张");
+    html += printKV(data, "本月累计", "张，累计:" + data["本月累计.累计"] + "张");
+    html += printKV(data, "本月食神卡累计");
+    html += printKV(data, "本月食神卡目标");
+    html += printKV(data, "本月食神卡达成率", "%");
+    html += printKV(null, "祝：生意兴隆!");
+    return html;
+}
+
+function printAccount(result) {
+    console.log(result)
+    var html = "";
+    var date = new Date();
+    var month = date.getMonth() + 1;
+    var lastMonth = (month == 1 ? 12 : month - 1);
+    var today = (date.getMonth() + 1) + "月" + date.getDate() + "日（星期" + Num2Text[date.getDay() + 1] + "）";
+    date.setDate(date.getDate() - 1);
+    var yesteday = (date.getMonth() + 1) + "月" + date.getDate() + "日";
+    html += printKV(data, yesteday + "账本余额" + result["三、账目明细"]["昨日帐本余额"] + "元");
+    html += printKV(data, today);
+
+    data = result["一、收入明细"];
+    html += printKV(data, "一、收入明细");
+    html += printKV(data, "营业额", "（元含中餐0元）");
+    html += printKV(data, "现金收入");
+    html += printKV(data, "支付宝扫码");
+    html += printKV(data, "新美大");
+    html += printKV(data, "微信支付");
+    html += printKV(data, "支付宝");
+    html += printKV(data, "小微会员支付");
+    html += printKV(data, "微信扫码支付");
+    html += printKV(data, "抖音出单");
+    html += printKV(data, "闪速外卖");
+    html += printKV(data, "饿了么");
+    html += printKV(data, "跑腿快车");
+    html += printKV(data, "支付宝小程序");
+    html += printKV(data, "云闪付");
+
+    data = result["二、开支明细"];
+    html += printKV(data, "二、开支明细");
+    html += printKV(data, "现在开支");
+    html += printKV(null, "现金:员工" + data["现金.员工"] + "人餐费" + data["现金.餐费"] + "元");
+    html += printKV(null, "合计:" + data["现金.合计"] + "元");
+    html += printKV(data, "卡支");
+    html += printKV(null, "合计: " + data["卡支.合计"] + "元");
+    html += printKV(data, "其它");
+    html += printKV(null, "合计: " + data["其它.合计"]);
+
+    data = result["三、账目明细"];
+    html += printKV(data, "三、账目明细");
+    html += printKV(data, "实际存行");
+    html += printKV(data, "未存行:元");
+    html += printKV(data, "备用金额");
+    html += printWeijie(data, "未结微信支付");
+    html += printWeijie(data, "未结支付宝");
+    html += printWeijie(data, "未结支付宝小程序");
+    html += printWeijie(data, "未结支付宝扫码小程序");
+    html += printWeijie(data, "末结小微会员支付");
+    html += printWeijie(data, "未结云闪付");
+    html += printWeijie(data, "未结微信扫码支付");
+    html += printWeijie(data, "未结闪速外卖");
+    html += printWeijie(data, "末结饿了么");
+    html += printWeijie(data, "未结抖音收入");
+    html += printWeijie(data, "末结跑腿快车");
+    html += printWeijie(data, "末结新美大");
+
+    html += printKV(data, "银行余额");
+    html += printKV(data, "帐本余额", "元（不包含1月食神卡" + result["三、食神卡"]["本月食神卡累计"] + "元，合计:" + result["三、食神卡"]["本月食神卡累计"] + "元）");
+    html += printKV(data, "截止" + lastMonth + "月底欠货款合计", "元(含" + lastMonth + "月份管理费元）");
+    html += printKV(data, month + "月进货");
+    html += printKV(null, "占" + month + "月累计营业（" + result["二、营运情况"]["本月营业额累计"] + "元）占比" + month + "月份进货率为" + Math.round(result["二、营运情况"]["本月营业额累计"] / result["二、营运情况"]["本月营业额累计"] * 10000) / 100 + "%");
+    html += printKV(null, "祝:生意兴隆！");
+    return html;
+}
+
+window.onload = function (){
+    // for test
+    //document.getElementById("old_revenue").value = lastRevenue;
+    //document.getElementById("old_account").value = lastAccount;
+
+    var btn = document.getElementById("gen_btn");
+    btn.onclick = function (){
+        var result = {};
+        parseReport(result, document.getElementById("old_revenue").value);
+        parseReport(result, document.getElementById("old_account").value);
+        sumRevenue(result);
+        roundResult(result);
+        var revEl = document.getElementById("new_revenue")
+        revEl.value = printRevenue(result);
+        console.log(revEl.innerHTML)
+        var accEl = document.getElementById("new_account")
+        accEl.value = printAccount(result);
+        console.log(accEl)
+    };
+}
+</script>
+</head>
+<body>
+<form>
+<fieldset id="old_report">
+    <legend>昨日报告</legend>
+    昨日收支报告: <textarea id="old_revenue" rows="3" cols="80"></textarea><br>
+    昨日记账报告: <textarea id="old_account" rows="3" cols="80"></textarea><br>
+</fieldset>
+<fieldset id="add_xx">
+    <legend>收入</legend>
+    营业额: <input value="" id="add_yinyee"/>元<br>
+    现金收入: <input value="" id="add_xianjin"/>元<br>
+    支付宝扫码: <input value="" id="add_zhifubaoshaoma"/>元<br>
+    新美大: <input value="" id="add_xinmeida"/>元<br>
+    微信支付: <input value="" id="add_weixin"/>元<br>
+    支付宝: <input value="" id="add_zhifubao"/>元<br>
+    小微会员支付: <input value="" id="add_xiaowei"/>元<br>
+    微信扫码支付: <input value="" id="add_weixinshaoma"/>元<br>
+    抖音出单: <input value="" id="add_douyin"/>元<br>
+    闪速外卖: <input value="" id="add_shansu"/>元<br>
+    饿了么: <input value="" id="add_eleme"/>元<br>
+    跑腿快车: <input value="" id="add_paotui"/>元<br>
+    支付宝小程序: <input value="" id="add_zhifubaoxiaochenxu"/>元<br>
+    云闪付: <input value="" id="add_yunshanfu"/>元<br>
+</fieldset>
+
+<fieldset id="shishen_xx">
+    <legend>食神卡</legend>
+    今日季卡: <input value="" id="shishen_jika"/>张<br>
+    今日年卡: <input value="" id="shishen_nianka"/>张<br>
+</fieldset>
+
+<fieldset id="del_xx">
+    <legend>现在开支</legend>
+    现金: 员工<input value="" id="employee_num"/>人餐费<input value="" id="del_meal_charge"/>元<br>
+    卡支: <input value="" id="del_kazhi"/>元<br>
+    其它收入: <input value="" id="del_qita"/>元。<br>
+</fieldset>
+
+<fieldset>
+<button type="button" id="gen_btn">生成</button>
+</fieldset>
+
+<fieldset id="old_report">
+    <legend>昨日报告</legend>
+    收支报告: <textarea id="new_revenue" rows="35" cols="80"></textarea><br>
+    记账报告: <textarea id="new_account" rows="55" cols="80"></textarea><br>
+</fieldset>
+</body>
+</html>
+
